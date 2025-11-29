@@ -1,0 +1,54 @@
+# 🚀 IMPORTAR SCHEMA A SUPABASE
+
+## PASO 1: Copiar el SQL
+
+1. Abre el archivo: `c:\Users\desib\Documents\lawbix\database\supabase_schema.sql`
+2. **Selecciona TODO** el contenido (Ctrl+A)
+3. **Copia** (Ctrl+C)
+
+## PASO 2: Pegar en Supabase SQL Editor
+
+1. En Supabase, estás en **SQL Editor**
+2. En el área de texto donde dice "Hit CTRL+K to generate query or just start typing"
+3. **Pega** el SQL (Ctrl+V)
+
+## PASO 3: Ejecutar
+
+1. Clic en el botón **"Run"** (esquina inferior derecha)
+2. Espera a que termine (debería tomar 2-3 segundos)
+3. Verás "Success. No rows returned" si todo salió bien
+
+## PASO 4: Verificar Tablas
+
+1. En el menú lateral izquierdo, clic en **"Table Editor"** (icono de tabla)
+2. Deberías ver todas las tablas:
+   - users
+   - companies
+   - company_partners
+   - risks
+   - roadmap_items
+   - documents
+   - diagnosis_results
+   - chat_history
+   - activity_log
+
+## PASO 5: Verificar Datos Demo
+
+1. En Table Editor, clic en la tabla **"users"**
+2. Deberías ver 3 usuarios:
+   - demo@lawbix.com
+   - maria.gonzalez@techcorp.com
+   - carlos.rodriguez@lawfirm.com
+
+---
+
+## ✅ SIGUIENTE PASO
+
+Una vez que veas las tablas y los datos, avísame para continuar con:
+- Obtener credenciales de conexión
+- Actualizar el backend
+- Configurar Vercel
+
+---
+
+**¿Listo? Copia el SQL y ejecútalo en Supabase** 🚀

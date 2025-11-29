@@ -1,0 +1,85 @@
+# 📝 PASOS FINALES EN FILE MANAGER
+
+## ✅ Archivo Subido
+
+Ya tienes `lawbix-frontend-final.zip` en public_html.
+
+---
+
+## PASO 1: Extraer el ZIP
+
+1. **Clic derecho** en `lawbix-frontend-final.zip`
+2. Selecciona **"Extract"** o **"Extraer"**
+3. Confirma que quieres extraer en la ubicación actual
+4. Espera a que termine (verás los archivos aparecer)
+
+---
+
+## PASO 2: Eliminar el ZIP
+
+1. **Clic derecho** en `lawbix-frontend-final.zip`
+2. Selecciona **"Delete"** o **"Eliminar"**
+3. Confirma
+
+---
+
+## PASO 3: Crear .htaccess
+
+1. En `public_html/`, clic en **"New File"** o **"Nuevo archivo"** (botón arriba a la izquierda)
+2. Nombre del archivo: `.htaccess` (con el punto al inicio)
+3. Clic en **"Create"** o **"Crear"**
+4. **Clic derecho** en el archivo `.htaccess` → **"Edit"** o **"Editar"**
+5. **Pega este contenido**:
+
+```apache
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpg "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType text/css "access plus 1 month"
+  ExpiresByType application/javascript "access plus 1 month"
+</IfModule>
+```
+
+6. **Save** o **"Guardar"**
+
+---
+
+## PASO 4: Verificar Archivos
+
+Deberías tener en `public_html/`:
+- ✅ `index.html`
+- ✅ `assets/` (carpeta con CSS y JS)
+- ✅ `.htaccess`
+- ❌ `lawbix-frontend-final.zip` (eliminado)
+
+---
+
+## PASO 5: Probar la Aplicación
+
+1. Abre en el navegador: **https://lawbix.creceseonline.com**
+2. Debe cargar la página de login
+3. Prueba login:
+   ```
+   Email: demo@lawbix.com
+   Password: demo123
+   ```
+
+---
+
+**Avísame cuando hayas extraído el ZIP y creado el .htaccess** 👍

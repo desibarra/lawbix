@@ -1,0 +1,49 @@
+# 🔑 OBTENER CREDENCIALES DE SUPABASE
+
+## PASO 1: Ir a Settings
+
+1. En Supabase dashboard, clic en **"Settings"** (icono de engranaje en el menú lateral izquierdo)
+2. Clic en **"Database"**
+
+## PASO 2: Copiar Credenciales
+
+Scroll hasta la sección **"Connection string"** y verás:
+
+### URI (Connection String)
+```
+postgresql://postgres.xxxxx:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres
+```
+
+**Copia esta cadena completa** y guárdala.
+
+### También necesitas estos datos individuales:
+
+Scroll más abajo hasta **"Connection parameters"**:
+
+```
+Host: aws-0-us-east-1.pooler.supabase.com
+Database name: postgres
+Port: 6543
+User: postgres.xxxxx
+Password: [la que creaste al inicio]
+```
+
+**Copia cada uno de estos valores**.
+
+---
+
+## ✅ VALORES QUE NECESITAS
+
+Anota estos valores (los usaremos en Vercel):
+
+```
+DB_HOST=aws-0-us-east-1.pooler.supabase.com
+DB_PORT=6543
+DB_NAME=postgres
+DB_USER=postgres.xxxxx
+DB_PASSWORD=[tu-password]
+```
+
+---
+
+**Avísame cuando tengas estos valores copiados** 📋

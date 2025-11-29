@@ -1,0 +1,80 @@
+# ✅ Schema Importado Correctamente
+
+## Estado Actual
+
+- ✅ **22 consultas ejecutadas** del schema.sql
+- ✅ **Tablas creadas** (puedes verlas en el panel izquierdo):
+  - users
+  - companies
+  - partners
+  - risks
+  - roadmap_items
+  - documents
+  - diagnosis
+  - risk_answers
+  - roadmap
+  - cap_table
+  - activity_log
+
+- ⚠️ **Error de information_schema**: IGNORAR - es normal, no afecta
+
+---
+
+## 📝 SIGUIENTE PASO: Importar Datos Demo
+
+1. En phpMyAdmin, clic en **"Importar"** (Import) nuevamente
+2. Clic en **"Seleccionar archivo"** (Choose File)
+3. Navega a: `c:\Users\desib\Documents\lawbix\backend\database\seed_demo.sql`
+4. Selecciona el archivo
+5. Scroll hacia abajo
+6. Clic en **"Continuar"** o **"Go"**
+7. ✅ Deberías ver: "Importación ejecutada exitosamente"
+
+---
+
+## 🔍 OBTENER HOST EXTERNO DE MYSQL
+
+**Necesito que hagas esto AHORA**:
+
+1. Abre una nueva pestaña del navegador
+2. Ve a tu **hPanel de Hostinger**
+3. **Databases** → **MySQL Databases**
+4. Busca tu base de datos: `u559395594_lawbix`
+5. Busca la sección **"Remote MySQL"** o **"External Access"** o **"Acceso Externo"**
+6. Verás algo como:
+   ```
+   External Host: sql123.main-hosting.eu
+   Port: 3306
+   ```
+   O puede ser:
+   ```
+   srv123.main-hosting.eu
+   ```
+
+7. **COPIA ESE HOST** y pégalo aquí
+
+---
+
+## 🔓 HABILITAR ACCESO REMOTO
+
+En la misma sección de Remote MySQL:
+
+1. Busca **"Add Access Host"** o **"Agregar Host"**
+2. En el campo de IP, escribe: `%`
+3. Clic en **"Agregar"** o **"Add"**
+
+Esto permite que Vercel se conecte a tu MySQL desde cualquier IP.
+
+---
+
+## ✅ CHECKLIST
+
+- [x] Schema.sql importado (22 consultas)
+- [x] Tablas creadas
+- [ ] seed_demo.sql importado
+- [ ] Host externo copiado
+- [ ] Acceso remoto habilitado
+
+---
+
+**Primero importa seed_demo.sql, luego busca el host externo** 👍

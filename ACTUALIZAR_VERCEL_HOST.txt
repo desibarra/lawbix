@@ -1,0 +1,52 @@
+# 🔧 ACTUALIZAR VERCEL CON HOST EXTERNO
+
+## Host Externo Obtenido
+
+```
+srv1169.hstgr.io
+```
+
+---
+
+## Comandos para Actualizar Vercel
+
+Ejecuta estos comandos en la terminal de PowerShell:
+
+```powershell
+cd c:\Users\desib\Documents\lawbix\backend
+
+# Agregar DB_HOST
+vercel env add DB_HOST production
+# Cuando pregunte si es sensible: N
+# Cuando pida el valor: srv1169.hstgr.io
+
+# Redeploy con nueva configuración
+vercel --prod
+```
+
+---
+
+## Verificar Backend
+
+Una vez que termine el redeploy, verifica:
+
+```
+https://lawbix-h3wim1oth-desibarras-projects.vercel.app/api/health
+```
+
+Debe mostrar:
+```json
+{"status":"ok","timestamp":"...","service":"LAWBiX API"}
+```
+
+---
+
+## Próximos Pasos
+
+1. ✅ MySQL remoto habilitado
+2. ✅ Host externo obtenido: srv1169.hstgr.io
+3. [/] Actualizar DB_HOST en Vercel
+4. [ ] Redeploy backend
+5. [ ] Verificar health check
+6. [ ] Actualizar frontend con URL de Vercel
+7. [ ] Subir frontend a Hostinger

@@ -1,0 +1,100 @@
+# 🗄️ PASO A PASO - Importar Base de Datos
+
+## 1️⃣ ACCEDER A PHPMYADMIN
+
+**URL**: https://auth-db1169.hstgr.io/index.php?db=u559395594_lawbix
+
+**Credenciales**:
+```
+Usuario: u559395594_lawbix
+Contraseña: mR+0y7lV/B65
+```
+
+---
+
+## 2️⃣ IMPORTAR SCHEMA (Estructura de Tablas)
+
+1. Una vez dentro de phpMyAdmin, verás tu base de datos en el panel izquierdo
+2. Clic en la pestaña **"Import"** (Importar) en el menú superior
+3. Clic en **"Choose File"** (Elegir archivo)
+4. Navega a: `c:\Users\desib\Documents\lawbix\backend\database\schema.sql`
+5. Selecciona el archivo
+6. Scroll hacia abajo
+7. Clic en **"Go"** (Ejecutar)
+8. ✅ Deberías ver un mensaje: "Import has been successfully finished"
+
+---
+
+## 3️⃣ IMPORTAR DATOS DEMO
+
+1. Clic nuevamente en **"Import"**
+2. Clic en **"Choose File"**
+3. Navega a: `c:\Users\desib\Documents\lawbix\backend\database\seed_demo.sql`
+4. Selecciona el archivo
+5. Clic en **"Go"**
+6. ✅ Mensaje de éxito
+
+---
+
+## 4️⃣ VERIFICAR TABLAS
+
+1. Clic en tu base de datos `u559395594_lawbix` en el panel izquierdo
+2. Deberías ver estas tablas:
+   - ✅ users
+   - ✅ companies
+   - ✅ company_partners
+   - ✅ risks
+   - ✅ roadmap_items
+   - ✅ documents
+   - ✅ diagnosis_results
+   - ✅ chat_history
+
+3. Clic en la tabla **"users"**
+4. Clic en **"Browse"**
+5. Deberías ver 3 usuarios:
+   - demo@lawbix.com
+   - maria.gonzalez@techcorp.com
+   - carlos.rodriguez@lawfirm.com
+
+---
+
+## 5️⃣ OBTENER HOST EXTERNO
+
+**Mientras estás en hPanel**:
+
+1. Ve a **Databases** → **MySQL Databases**
+2. Busca la sección **"Remote MySQL"** o **"External Database Access"**
+3. Verás algo como:
+   ```
+   External Host: sql123.main-hosting.eu
+   Port: 3306
+   ```
+4. **COPIA ESE HOST** (ej: `sql123.main-hosting.eu`)
+
+---
+
+## 6️⃣ HABILITAR ACCESO REMOTO
+
+En la misma sección de Remote MySQL:
+
+1. Busca **"Add Access Host"** o **"Allow External Connections"**
+2. En el campo de IP, escribe: `%`
+3. Clic en **"Add"** o **"Save"**
+
+Esto permite que Vercel se conecte a tu MySQL.
+
+---
+
+## ✅ CHECKLIST
+
+- [ ] Accedí a phpMyAdmin
+- [ ] Importé schema.sql
+- [ ] Importé seed_demo.sql
+- [ ] Verifiqué que hay 8 tablas
+- [ ] Verifiqué que hay 3 usuarios
+- [ ] Copié el host externo
+- [ ] Habilité acceso remoto con `%`
+
+---
+
+**Avísame cuando completes estos pasos y me das el host externo** 👍

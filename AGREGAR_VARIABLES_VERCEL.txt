@@ -1,0 +1,68 @@
+# 🔧 AGREGAR VARIABLES DE ENTORNO FALTANTES
+
+## Problema Identificado
+
+Solo DB_HOST está configurado en Vercel. Faltan:
+- DB_USER
+- DB_PASSWORD
+- DB_NAME
+- DB_PORT
+- JWT_SECRET
+- OPENAI_API_KEY
+- NODE_ENV
+
+## Comandos para Agregar Variables
+
+Ejecuta estos comandos UNO POR UNO en PowerShell:
+
+```powershell
+cd c:\Users\desib\Documents\lawbix\backend
+
+# DB_USER
+vercel env add DB_USER production
+# Valor: u559395594_lawbix
+
+# DB_PASSWORD
+vercel env add DB_PASSWORD production
+# Valor: mR+0y7lV/B65
+
+# DB_NAME
+vercel env add DB_NAME production
+# Valor: u559395594_lawbix
+
+# DB_PORT
+vercel env add DB_PORT production
+# Valor: 3306
+
+# NODE_ENV
+vercel env add NODE_ENV production
+# Valor: production
+
+# JWT_SECRET
+vercel env add JWT_SECRET production
+# Valor: dd8d55b1401eb0a540688f0f3b6b4465dbd4847b38e9b92f1d06ea67418201f80b96ae1ae63228b09bcbad2d8b4595969d86b10fdadc07aea70fd9a21e5b3f37
+
+# OPENAI_API_KEY (si la tienes)
+vercel env add OPENAI_API_KEY production
+# Valor: sk-proj-TU_KEY_AQUI
+
+# FRONTEND_URL
+vercel env add FRONTEND_URL production
+# Valor: https://lawbix.creceseonline.com
+
+# Redeploy
+vercel --prod
+```
+
+## Valores de Referencia
+
+```
+DB_HOST=srv1169.hstgr.io
+DB_USER=u559395594_lawbix
+DB_PASSWORD=mR+0y7lV/B65
+DB_NAME=u559395594_lawbix
+DB_PORT=3306
+NODE_ENV=production
+JWT_SECRET=dd8d55b1401eb0a540688f0f3b6b4465dbd4847b38e9b92f1d06ea67418201f80b96ae1ae63228b09bcbad2d8b4595969d86b10fdadc07aea70fd9a21e5b3f37
+FRONTEND_URL=https://lawbix.creceseonline.com
+```

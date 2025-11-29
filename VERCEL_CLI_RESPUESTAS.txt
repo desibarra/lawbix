@@ -1,0 +1,59 @@
+# 📝 RESPUESTAS PARA VERCEL CLI
+
+## Pregunta 1:
+```
+? Set up and deploy "~\Documents\lawbix\backend"?
+```
+**Respuesta**: `Y` + ENTER
+
+---
+
+## Pregunta 2:
+```
+? Which scope do you want to deploy to?
+```
+**Respuesta**: Selecciona tu usuario (usa flechas ↑↓) + ENTER
+
+---
+
+## Pregunta 3:
+```
+? Link to existing project?
+```
+**Respuesta**: `N` + ENTER
+
+---
+
+## Pregunta 4:
+```
+
+? What's your project's name?
+```
+**Respuesta**: `lawbix-api` + ENTER
+
+---
+
+## Pregunta 5:
+```
+? In which directory is your code located?
+```
+**Respuesta**: `./` + ENTER (o solo ENTER)
+
+---
+
+## Pregunta 6:
+```
+? Want to override the settings?
+```
+**Respuesta**: `N` + ENTER
+
+---
+
+Luego Vercel empezará a deployar automáticamente.
+
+**Espera a que termine** (30-60 segundos) y verás una URL como:
+```
+✅ Production: https://lawbix-api-xxxxx.vercel.app
+```
+
+**GUARDA ESA URL** - la necesitarás después.

@@ -1,0 +1,138 @@
+# ✅ BACKEND DEPLOYADO EN VERCEL
+
+## 🎉 URL de Producción
+
+```
+https://lawbix-h3wim1oth-desibarras-projects.vercel.app
+```
+
+---
+
+## 📝 PRÓXIMOS PASOS CRÍTICOS
+
+### 1️⃣ OBTENER HOST EXTERNO DE MYSQL (URGENTE)
+
+El backend está deployado pero **NO puede conectarse a la base de datos** porque está usando `localhost`.
+
+**Necesitas hacer esto AHORA**:
+
+1. Ve a **hPanel de Hostinger**
+2. **Databases** → **MySQL Databases**
+3. Clic en: `u559395594_lawbix`
+4. Busca **"Remote MySQL"** o **"External Database Access"**
+5. Copia el **host externo** (será algo como: `sql123.main-hosting.eu` o `srv123.main-hosting.eu`)
+
+---
+
+### 2️⃣ HABILITAR ACCESO REMOTO
+
+En la misma sección de Remote MySQL:
+
+**Agregar IP permitida**: `%` (permite desde cualquier IP)
+
+O específicamente las IPs de Vercel:
+- `76.76.21.0/24`
+- `76.76.19.0/24`
+- `64.252.128.0/24`
+
+**Guardar cambios**
+
+---
+
+### 3️⃣ ACTUALIZAR VARIABLE DB_HOST EN VERCEL
+
+Una vez que tengas el host externo, ejecuta:
+
+```powershell
+cd c:\Users\desib\Documents\lawbix\backend
+
+vercel env rm DB_HOST production
+# Confirma: Y
+
+vercel env add DB_HOST production
+# Pega el host externo que copiaste (ej: sql123.main-hosting.eu)
+```
+
+---
+
+### 4️⃣ REDEPLOY CON NUEVA CONFIGURACIÓN
+
+```powershell
+vercel --prod
+```
+
+Esto hará un nuevo deploy con el host correcto.
+
+---
+
+### 5️⃣ IMPORTAR BASE DE DATOS
+
+**phpMyAdmin**: https://auth-db1169.hstgr.io/index.php?db=u559395594_lawbix
+
+```
+Usuario: u559395594_lawbix
+Contraseña: mR+0y7lV/B65
+```
+
+1. **Import** → `backend/database/schema.sql` → **Go**
+2. **Import** → `backend/database/seed_demo.sql` → **Go**
+
+---
+
+### 6️⃣ VERIFICAR BACKEND
+
+Abre en el navegador:
+
+```
+https://lawbix-h3wim1oth-desibarras-projects.vercel.app/api/health
+```
+
+**Debe mostrar**:
+```json
+{"status":"ok","timestamp":"...","service":"LAWBiX API"}
+```
+
+Si ves esto: **¡BACKEND FUNCIONANDO!** ✅
+
+---
+
+### 7️⃣ ACTUALIZAR FRONTEND
+
+Edita `frontend/.env`:
+
+```env
+VITE_API_URL=https://lawbix-h3wim1oth-desibarras-projects.vercel.app/api
+VITE_ENV=production
+```
+
+Rebuild:
+```powershell
+cd c:\Users\desib\Documents\lawbix\frontend
+npm run build
+```
+
+---
+
+### 8️⃣ SUBIR FRONTEND A HOSTINGER
+
+**File Manager** → `/public_html/`:
+1. Elimina todo
+2. Sube contenido de `frontend/dist/`
+3. Crea `.htaccess` (ver guía completa)
+
+---
+
+## 🚨 ORDEN DE EJECUCIÓN
+
+1. ✅ Backend deployado en Vercel
+2. ⏳ Obtener host externo MySQL
+3. ⏳ Habilitar acceso remoto
+4. ⏳ Actualizar DB_HOST
+5. ⏳ Redeploy
+6. ⏳ Importar base de datos
+7. ⏳ Verificar backend
+8. ⏳ Actualizar y subir frontend
+
+---
+
+**EMPIEZA POR EL PASO 1: Obtener el host externo de MySQL en Hostinger** 👍
