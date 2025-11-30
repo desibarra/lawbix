@@ -1,6 +1,6 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const pool = require('../database/db');
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { supabase } from '../lib/db.js';
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -12,7 +12,7 @@ const generateToken = (userId) => {
 // @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -25,12 +25,14 @@ exports.login = async (req, res) => {
     }
 
     // Check if user exists
-    const [users] = await pool.query(
-      'SELECT * FROM users WHERE email = ?',
-      [email]
-    );
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email);
 
-    if (users.length === 0) {
+    if (error) throw error;
+
+    if (!users || users.length === 0) {
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -75,7 +77,7 @@ exports.login = async (req, res) => {
 // @desc    Register new user
 // @route   POST /api/auth/register
 // @access  Public
-exports.register = async (req, res) => {
+export const register = async (req, res) => {
   try {
     const { name, email, password, company_id, role } = req.body;
 
@@ -88,12 +90,14 @@ exports.register = async (req, res) => {
     }
 
     // Check if user already exists
-    const [existingUsers] = await pool.query(
-      'SELECT id FROM users WHERE email = ?',
-      [email]
-    );
+    const { data: existingUsers, error: checkError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email);
 
-    if (existingUsers.length > 0) {
+    if (checkError) throw checkError;
+
+    if (existingUsers && existingUsers.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'User already exists with this email'
@@ -105,23 +109,34 @@ exports.register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create user
-    const [result] = await pool.query(
-      'INSERT INTO users (name, email, password, company_id, role) VALUES (?, ?, ?, ?, ?)',
-      [name, email, hashedPassword, company_id || null, role || 'user']
-    );
+    const { data: newUser, error: insertError } = await supabase
+      .from('users')
+      .insert([
+        {
+          name,
+          email,
+          password: hashedPassword,
+          company_id: company_id || null,
+          role: role || 'user'
+        }
+      ])
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
 
     // Generate token
-    const token = generateToken(result.insertId);
+    const token = generateToken(newUser.id);
 
     res.status(201).json({
       success: true,
       token,
       user: {
-        id: result.insertId,
-        name,
-        email,
-        role: role || 'user',
-        company_id: company_id || null
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        company_id: newUser.company_id
       }
     });
   } catch (error) {
@@ -136,14 +151,17 @@ exports.register = async (req, res) => {
 // @desc    Get current logged in user
 // @route   GET /api/auth/me
 // @access  Private
-exports.getMe = async (req, res) => {
+export const getMe = async (req, res) => {
   try {
-    const [users] = await pool.query(
-      'SELECT id, name, email, role, company_id, created_at FROM users WHERE id = ?',
-      [req.user.id]
-    );
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, name, email, role, company_id, created_at')
+      .eq('id', req.user.id)
+      .single();
 
-    if (users.length === 0) {
+    if (error) throw error;
+
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
@@ -152,7 +170,7 @@ exports.getMe = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      user: users[0]
+      user
     });
   } catch (error) {
     console.error('GetMe error:', error);

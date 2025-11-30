@@ -1,10 +1,10 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const companyController = require('../controllers/companyController');
-const { protect, authorize } = require('../middlewares/authMiddleware');
+import * as companyController from '../controllers/companyController.js';
+import { protect, authorize } from '../middlewares/authMiddleware.js';
 
 // DEBUG: Get database schema (public route for debugging)
-router.get('/schema', companyController.getSchema);
+// router.get('/schema', companyController.getSchema); // Disabled for Supabase migration
 
 // All company routes require authentication
 router.use(protect);
@@ -27,4 +27,4 @@ router.put('/:id', companyController.updateCompany);
 // Delete company (admin only)
 router.delete('/:id', authorize('admin'), companyController.deleteCompany);
 
-module.exports = router;
+export default router;

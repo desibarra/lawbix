@@ -1,20 +1,20 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import { checkConnection } from './lib/db.js';
 
 // Import routes
-const authRoutes = require('./routes/authRoutes');
-const companyRoutes = require('./routes/companyRoutes');
-const documentRoutes = require('./routes/documentRoutes');
-const diagnosisRoutes = require('./routes/diagnosisRoutes');
-const roadmapRoutes = require('./routes/roadmapRoutes');
-const riskRoutes = require('./routes/riskRoutes');
-const chatbotRoutes = require('./routes/chatbotRoutes');
+import authRoutes from './routes/authRoutes.js';
+import companyRoutes from './routes/companyRoutes.js';
+import documentRoutes from './routes/documentRoutes.js';
+import diagnosisRoutes from './routes/diagnosisRoutes.js';
+import roadmapRoutes from './routes/roadmapRoutes.js';
+import riskRoutes from './routes/riskRoutes.js';
+import chatbotRoutes from './routes/chatbotRoutes.js';
 
 // Import middlewares
-const errorHandler = require('./middlewares/errorMiddleware');
+import errorHandler from './middlewares/errorMiddleware.js';
 
 const app = express();
 
@@ -81,12 +81,16 @@ app.use('/api/chatbot', chatbotRoutes);
 // ===============================
 // 🩺 Health Check
 // ===============================
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    service: 'LAWBiX API',
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    await checkConnection();
+    return res.status(200).json({ ok: true, message: 'Supabase OK' });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: error.message,
+    });
+  }
 });
 
 // ===============================
@@ -104,4 +108,4 @@ app.use((req, res) => {
 // ===============================
 app.use(errorHandler);
 
-module.exports = app;
+export default app;

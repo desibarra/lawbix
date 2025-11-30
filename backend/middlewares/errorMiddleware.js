@@ -6,7 +6,7 @@ const errorHandler = (err, req, res, next) => {
   // Log error for debugging
   console.error('Error:', err);
 
-  // Mongoose bad ObjectId
+  // Mongoose bad ObjectId (Legacy check, keeping just in case)
   if (err.name === 'CastError') {
     const message = 'Resource not found';
     error = { message, statusCode: 404 };
@@ -42,4 +42,4 @@ const errorHandler = (err, req, res, next) => {
   });
 };
 
-module.exports = errorHandler;
+export default errorHandler;

@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const chatbotController = require('../controllers/chatbotController');
-const { protect } = require('../middlewares/authMiddleware');
+import * as chatbotController from '../controllers/chatbotController.js';
+import { protect } from '../middlewares/authMiddleware.js';
 
 // All chatbot routes require authentication
 router.use(protect);
@@ -15,4 +15,4 @@ router.get('/history', chatbotController.getChatHistory);
 // Clear chat history
 router.delete('/history', chatbotController.clearHistory);
 
-module.exports = router;
+export default router;

@@ -1,54 +1,24 @@
-// Serverless-compatible PostgreSQL connection helper for Supabase
-const { Pool } = require('pg');
+import { createClient } from '@supabase/supabase-js';
 
-let pool;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
 
-function getPool() {
-  if (!pool) {
-    console.log('🔄 Creating PostgreSQL connection pool...');
-
-    // Use DATABASE_URL if available (recommended for Supabase)
-    const connectionString = process.env.DATABASE_URL;
-
-    if (!connectionString) {
-      console.error('❌ DATABASE_URL environment variable is missing');
-      throw new Error('DATABASE_URL environment variable is missing');
-    }
-
-    pool = new Pool({
-      connectionString: connectionString,
-      ssl: {
-        rejectUnauthorized: false // Required for Supabase
-      },
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
-    });
-
-    console.log('✅ PostgreSQL pool created');
-  }
-
-  return pool;
+// Validación
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing Supabase environment variables');
 }
 
-async function query(sql, params = []) {
-  const pool = getPool();
-  try {
-    // Convert MySQL placeholders (?) to PostgreSQL ($1, $2, ...)
-    let pgSql = sql;
-    let pgParams = params;
+// Crear cliente de Supabase
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
-    if (params.length > 0) {
-      let index = 1;
-      pgSql = sql.replace(/\?/g, () => `$${index++}`);
-    }
+// Función de prueba de conexión
+export const checkConnection = async () => {
+  const { data, error } = await supabase.from('users').select('id').limit(1);
 
-    const result = await pool.query(pgSql, pgParams);
-    return result.rows;
-  } catch (error) {
-    console.error('❌ Database query error:', error.message);
+  if (error) {
+    console.error('❌ Supabase connection error:', error);
     throw error;
   }
-}
 
-module.exports = { getPool, query };
+  return data;
+};

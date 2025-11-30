@@ -1,8 +1,8 @@
-const jwt = require('jsonwebtoken');
-const pool = require('../database/db');
+import jwt from 'jsonwebtoken';
+import { supabase } from '../lib/db.js';
 
 // Protect routes - require authentication
-exports.protect = async (req, res, next) => {
+export const protect = async (req, res, next) => {
   let token;
 
   // Check for token in Authorization header
@@ -15,12 +15,13 @@ exports.protect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'lawbix_secret_key_2025');
 
       // Get user from database
-      const [users] = await pool.query(
-        'SELECT id, name, email, role, company_id FROM users WHERE id = ?',
-        [decoded.id]
-      );
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('id, name, email, role, company_id')
+        .eq('id', decoded.id)
+        .single();
 
-      if (users.length === 0) {
+      if (error || !user) {
         return res.status(401).json({
           success: false,
           message: 'User not found'
@@ -28,7 +29,7 @@ exports.protect = async (req, res, next) => {
       }
 
       // Attach user to request object
-      req.user = users[0];
+      req.user = user;
 
       next();
     } catch (error) {
@@ -49,7 +50,7 @@ exports.protect = async (req, res, next) => {
 };
 
 // Authorize specific roles
-exports.authorize = (...roles) => {
+export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({

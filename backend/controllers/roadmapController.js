@@ -1,75 +1,86 @@
-const pool = require('../database/db');
+import { supabase } from '../lib/db.js';
 
 // @desc    Get roadmap for company
 // @route   GET /api/roadmap
 // @access  Private
-exports.getRoadmap = async (req, res) => {
+export const getRoadmap = async (req, res) => {
   try {
     const companyId = req.user.company_id;
     const userId = req.user.id;
 
     let items = [];
+    let error = null;
 
     // Try roadmap_items table first
-    try {
-      if (companyId) {
-        [items] = await pool.query(
-          'SELECT * FROM roadmap_items WHERE company_id = ? ORDER BY priority DESC, due_date ASC',
-          [companyId]
-        );
-      } else {
-        [items] = await pool.query(
-          'SELECT * FROM roadmap_items WHERE user_id = ? ORDER BY priority DESC, due_date ASC',
-          [userId]
-        );
-      }
-    } catch (dbError) {
-      // If roadmap_items doesn't exist, try roadmap_steps
-      if (dbError.code === 'ER_NO_SUCH_TABLE') {
+    if (companyId) {
+      const { data, error: dbError } = await supabase
+        .from('roadmap_items')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('priority', { ascending: false })
+        .order('due_date', { ascending: true });
+
+      if (!dbError) items = data;
+      else error = dbError;
+    } else {
+      const { data, error: dbError } = await supabase
+        .from('roadmap_items')
+        .select('*')
+        .eq('user_id', userId)
+        .order('priority', { ascending: false })
+        .order('due_date', { ascending: true });
+
+      if (!dbError) items = data;
+      else error = dbError;
+    }
+
+    if (error) {
+      // If roadmap_items fails (e.g. table doesn't exist), try roadmap_steps
+      if (error.code === '42P01') { // Postgres "undefined_table"
         console.log('roadmap_items table not found, trying roadmap_steps...');
-        try {
-          if (companyId) {
-            [items] = await pool.query(
-              'SELECT * FROM roadmap_steps WHERE company_id = ? ORDER BY order_index ASC',
-              [companyId]
-            );
-          } else {
-            [items] = await pool.query(
-              'SELECT * FROM roadmap_steps WHERE user_id = ? ORDER BY order_index ASC',
-              [userId]
-            );
-          }
-        } catch (altError) {
-          if (altError.code === 'ER_NO_SUCH_TABLE') {
+        let stepError = null;
+        if (companyId) {
+          const { data, error: altError } = await supabase
+            .from('roadmap_steps')
+            .select('*')
+            .eq('company_id', companyId)
+            .order('order_index', { ascending: true });
+          if (!altError) items = data;
+          else stepError = altError;
+        } else {
+          const { data, error: altError } = await supabase
+            .from('roadmap_steps')
+            .select('*')
+            .eq('user_id', userId)
+            .order('order_index', { ascending: true });
+          if (!altError) items = data;
+          else stepError = altError;
+        }
+
+        if (stepError) {
+          if (stepError.code === '42P01') {
             console.warn('Neither roadmap_items nor roadmap_steps tables exist. Returning empty roadmap.');
-            // Return empty roadmap instead of error
             return res.status(200).json({
               success: true,
               count: 0,
               roadmap: [],
-              message: 'Roadmap tables not yet created. Please run database migrations.'
+              message: 'Roadmap tables not yet created.'
             });
           }
-          throw altError;
+          throw stepError;
         }
       } else {
-        throw dbError;
+        throw error;
       }
     }
 
     res.status(200).json({
       success: true,
-      count: items.length,
-      roadmap: items
+      count: items ? items.length : 0,
+      roadmap: items || []
     });
   } catch (error) {
     console.error('Get roadmap error:', error);
-    console.error('Error details:', {
-      code: error.code,
-      sqlMessage: error.sqlMessage,
-      sql: error.sql
-    });
-
     res.status(500).json({
       success: false,
       message: 'Error fetching roadmap',
@@ -81,15 +92,19 @@ exports.getRoadmap = async (req, res) => {
 // @desc    Get roadmap items by priority
 // @route   GET /api/roadmap/priority/:level
 // @access  Private
-exports.getByPriority = async (req, res) => {
+export const getByPriority = async (req, res) => {
   try {
     const companyId = req.user.company_id;
     const priority = req.params.level;
 
-    const [items] = await pool.query(
-      'SELECT * FROM roadmap_items WHERE company_id = ? AND priority = ? ORDER BY due_date ASC',
-      [companyId, priority]
-    );
+    const { data: items, error } = await supabase
+      .from('roadmap_items')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('priority', priority)
+      .order('due_date', { ascending: true });
+
+    if (error) throw error;
 
     res.status(200).json({
       success: true,
@@ -108,25 +123,33 @@ exports.getByPriority = async (req, res) => {
 // @desc    Create roadmap item
 // @route   POST /api/roadmap
 // @access  Private
-exports.createRoadmapItem = async (req, res) => {
+export const createRoadmapItem = async (req, res) => {
   try {
     const { title, description, priority, due_date, category } = req.body;
     const companyId = req.user.company_id;
 
-    const [result] = await pool.query(
-      'INSERT INTO roadmap_items (company_id, title, description, priority, due_date, category, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [companyId, title, description, priority, due_date, category, 'pending']
-    );
+    const { data: newItem, error } = await supabase
+      .from('roadmap_items')
+      .insert([
+        {
+          company_id: companyId,
+          title,
+          description,
+          priority,
+          due_date,
+          category,
+          status: 'pending'
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
 
     res.status(201).json({
       success: true,
       message: 'Roadmap item created',
-      item: {
-        id: result.insertId,
-        title,
-        priority,
-        status: 'pending'
-      }
+      item: newItem
     });
   } catch (error) {
     console.error('Create roadmap item error:', error);
@@ -140,15 +163,23 @@ exports.createRoadmapItem = async (req, res) => {
 // @desc    Update roadmap item
 // @route   PUT /api/roadmap/:id
 // @access  Private
-exports.updateRoadmapItem = async (req, res) => {
+export const updateRoadmapItem = async (req, res) => {
   try {
     const itemId = req.params.id;
     const { title, description, priority, due_date, status } = req.body;
 
-    await pool.query(
-      'UPDATE roadmap_items SET title = ?, description = ?, priority = ?, due_date = ?, status = ? WHERE id = ?',
-      [title, description, priority, due_date, status, itemId]
-    );
+    const { error } = await supabase
+      .from('roadmap_items')
+      .update({
+        title,
+        description,
+        priority,
+        due_date,
+        status
+      })
+      .eq('id', itemId);
+
+    if (error) throw error;
 
     res.status(200).json({
       success: true,
@@ -166,14 +197,19 @@ exports.updateRoadmapItem = async (req, res) => {
 // @desc    Mark roadmap item as completed
 // @route   PATCH /api/roadmap/:id/complete
 // @access  Private
-exports.markAsCompleted = async (req, res) => {
+export const markAsCompleted = async (req, res) => {
   try {
     const itemId = req.params.id;
 
-    await pool.query(
-      'UPDATE roadmap_items SET status = ?, completed_at = NOW() WHERE id = ?',
-      ['completed', itemId]
-    );
+    const { error } = await supabase
+      .from('roadmap_items')
+      .update({
+        status: 'completed',
+        completed_at: new Date()
+      })
+      .eq('id', itemId);
+
+    if (error) throw error;
 
     res.status(200).json({
       success: true,
@@ -191,11 +227,16 @@ exports.markAsCompleted = async (req, res) => {
 // @desc    Delete roadmap item
 // @route   DELETE /api/roadmap/:id
 // @access  Private
-exports.deleteRoadmapItem = async (req, res) => {
+export const deleteRoadmapItem = async (req, res) => {
   try {
     const itemId = req.params.id;
 
-    await pool.query('DELETE FROM roadmap_items WHERE id = ?', [itemId]);
+    const { error } = await supabase
+      .from('roadmap_items')
+      .delete()
+      .eq('id', itemId);
+
+    if (error) throw error;
 
     res.status(200).json({
       success: true,

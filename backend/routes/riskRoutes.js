@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const riskController = require('../controllers/riskController');
-const { protect } = require('../middlewares/authMiddleware');
+import * as riskController from '../controllers/riskController.js';
+import { protect } from '../middlewares/authMiddleware.js';
 
 // All risk routes require authentication
 router.use(protect);
@@ -24,4 +24,4 @@ router.put('/:id', riskController.updateRisk);
 // Delete risk
 router.delete('/:id', riskController.deleteRisk);
 
-module.exports = router;
+export default router;

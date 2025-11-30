@@ -1,6 +1,6 @@
-const app = require('../app');
+import app from '../app.js';
 
-module.exports = async (req, res) => {
-  if (!req.body) req.body = {};
-  return app(req, res);
+export default async (req, res) => {
+    if (!req.body) req.body = {};
+    return app(req, res);
 };

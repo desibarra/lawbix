@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const diagnosisController = require('../controllers/diagnosisController');
-const { protect } = require('../middlewares/authMiddleware');
+import * as diagnosisController from '../controllers/diagnosisController.js';
+import { protect } from '../middlewares/authMiddleware.js';
 
 // All diagnosis routes require authentication
 router.use(protect);
@@ -18,4 +18,4 @@ router.get('/results', diagnosisController.getResults);
 // Get specific diagnosis by ID
 router.get('/:id', diagnosisController.getDiagnosisById);
 
-module.exports = router;
+export default router;

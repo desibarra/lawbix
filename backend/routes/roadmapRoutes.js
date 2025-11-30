@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const roadmapController = require('../controllers/roadmapController');
-const { protect } = require('../middlewares/authMiddleware');
+import * as roadmapController from '../controllers/roadmapController.js';
+import { protect } from '../middlewares/authMiddleware.js';
 
 // All roadmap routes require authentication
 router.use(protect);
@@ -24,4 +24,4 @@ router.patch('/:id/complete', roadmapController.markAsCompleted);
 // Delete roadmap item
 router.delete('/:id', roadmapController.deleteRoadmapItem);
 
-module.exports = router;
+export default router;

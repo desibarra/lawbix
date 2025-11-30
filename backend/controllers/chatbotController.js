@@ -1,4 +1,4 @@
-const pool = require('../database/db');
+import { supabase } from '../lib/db.js';
 
 // Smart keyword-based responses for legal chatbot
 const SMART_RESPONSES = {
@@ -56,7 +56,7 @@ function generateSmartResponse(message) {
 // @desc    Send message to chatbot
 // @route   POST /api/chatbot
 // @access  Private
-exports.sendMessage = async (req, res) => {
+export const sendMessage = async (req, res) => {
   try {
     const { message } = req.body;
     const userId = req.user.id;
@@ -73,12 +73,7 @@ exports.sendMessage = async (req, res) => {
     // Try OpenAI if API key is available
     if (process.env.OPENAI_API_KEY) {
       try {
-        // OpenAI integration (requires openai package configured)
-        // const openai = require('openai');
-        // const completion = await openai.chat.completions.create({...});
-        // botResponse = completion.choices[0].message.content;
-
-        // For now, use smart responses even if key exists
+        // OpenAI integration would go here
         botResponse = generateSmartResponse(message);
       } catch (aiError) {
         console.log('OpenAI error, using smart responses:', aiError.message);
@@ -89,23 +84,16 @@ exports.sendMessage = async (req, res) => {
       botResponse = generateSmartResponse(message);
     }
 
-    // Try to save to chat_history if table exists
+    // Try to save to chat_history
     try {
-      await pool.query(
-        'INSERT INTO chat_history (user_id, message, sender, created_at) VALUES (?, ?, ?, NOW())',
-        [userId, message, 'user']
-      );
-
-      await pool.query(
-        'INSERT INTO chat_history (user_id, message, sender, created_at) VALUES (?, ?, ?, NOW())',
-        [userId, botResponse, 'bot']
-      );
+      await supabase
+        .from('chat_history')
+        .insert([
+          { user_id: userId, message: message, sender: 'user', created_at: new Date() },
+          { user_id: userId, message: botResponse, sender: 'bot', created_at: new Date() }
+        ]);
     } catch (dbError) {
-      if (dbError.code === 'ER_NO_SUCH_TABLE') {
-        console.warn('chat_history table does not exist. Continuing without saving.');
-      } else {
-        console.error('Database error saving chat:', dbError);
-      }
+      console.warn('Error saving chat history (non-critical):', dbError.message);
     }
 
     res.status(200).json({
@@ -124,20 +112,24 @@ exports.sendMessage = async (req, res) => {
 };
 
 // Alias for backwards compatibility
-exports.processMessage = exports.sendMessage;
+export const processMessage = sendMessage;
 
 // @desc    Get chat history
 // @route   GET /api/chatbot/history
 // @access  Private
-exports.getChatHistory = async (req, res) => {
+export const getChatHistory = async (req, res) => {
   try {
     const userId = req.user.id;
     const limit = req.query.limit || 50;
 
-    const [messages] = await pool.query(
-      'SELECT id, message, sender, created_at FROM chat_history WHERE user_id = ? ORDER BY created_at DESC LIMIT ?',
-      [userId, parseInt(limit)]
-    );
+    const { data: messages, error } = await supabase
+      .from('chat_history')
+      .select('id, message, sender, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(parseInt(limit));
+
+    if (error) throw error;
 
     res.status(200).json({
       success: true,
@@ -156,11 +148,16 @@ exports.getChatHistory = async (req, res) => {
 // @desc    Clear chat history
 // @route   DELETE /api/chatbot/history
 // @access  Private
-exports.clearHistory = async (req, res) => {
+export const clearHistory = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    await pool.query('DELETE FROM chat_history WHERE user_id = ?', [userId]);
+    const { error } = await supabase
+      .from('chat_history')
+      .delete()
+      .eq('user_id', userId);
+
+    if (error) throw error;
 
     res.status(200).json({
       success: true,

@@ -1,142 +1,4 @@
-const pool = require('../database/db');
-
-// @desc    Get all risks for company
-// @route   GET /api/risks
-// @access  Private
-exports.getRisks = async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    console.log('\n=== GET RISKS (Flow: User -> Company -> Risks) ===');
-    console.log('User ID:', userId);
-
-    // STEP 1: Find user's company
-    let companyId = null;
-    try {
-      const [companies] = await pool.query(
-        'SELECT id FROM companies WHERE user_id = ? LIMIT 1',
-        [userId]
-      );
-
-      if (companies.length === 0) {
-        console.log('⚠️  User has no company. Returning mock risks.');
-        console.log('====================================================\n');
-        return res.status(200).json({
-          success: true,
-          count: 3,
-          risks: getMockRisks(),
-          source: 'mock_no_company',
-          message: 'No company found. Please register your company first.'
-        });
-      }
-
-      companyId = companies[0].id;
-      console.log('✅ Company found with ID:', companyId);
-    } catch (companyError) {
-      console.error('\n=== ERROR FINDING COMPANY ===');
-      console.error('Error en Riesgos:', companyError.message);
-      console.error('==============================\n');
-
-      return res.status(200).json({
-        success: true,
-        count: 3,
-        risks: getMockRisks(),
-        source: 'mock_error',
-        message: 'Error finding company. Showing sample risks.'
-      });
-    }
-
-    // STEP 2: Get risks for company
-    let risks = [];
-    let tableName = 'risks';
-
-    try {
-      // Try risks table first
-      console.log('Trying "risks" table with company_id:', companyId);
-      const query = 'SELECT * FROM risks WHERE company_id = ? ORDER BY severity DESC';
-      console.log('Query:', query);
-
-      [risks] = await pool.query(query, [companyId]);
-      console.log('✅ Successfully queried "risks" table. Found:', risks.length, 'rows');
-
-    } catch (dbError) {
-      console.error('\n=== DATABASE ERROR (Risks Table) ===');
-      console.error('Error en Riesgos:', dbError.message);
-      console.error('Error code:', dbError.code);
-      console.error('SQL Message:', dbError.sqlMessage);
-      console.error('====================================\n');
-
-      // PASO 2: Try alternative table name - risk_flags
-      if (dbError.code === 'ER_NO_SUCH_TABLE' || dbError.code === 'ER_BAD_DB_ERROR') {
-        console.log('⚠️  "risks" table not found. Trying "risk_flags" table...');
-
-        try {
-          const altQuery = 'SELECT * FROM risk_flags WHERE company_id = ? ORDER BY severity DESC';
-          console.log('Query:', altQuery);
-
-          [risks] = await pool.query(altQuery, [companyId]);
-          tableName = 'risk_flags';
-          console.log('✅ Successfully queried "risk_flags" table. Found:', risks.length, 'rows');
-
-        } catch (altError) {
-          console.error('\n=== DATABASE ERROR (Risk_flags Table) ===');
-          console.error('Error en Riesgos:', altError.message);
-          console.error('Error code:', altError.code);
-          console.error('SQL Message:', altError.sqlMessage);
-          console.error('=========================================\n');
-
-          // PASO 3: Both tables failed, return mock data
-          if (altError.code === 'ER_NO_SUCH_TABLE' || altError.code === 'ER_BAD_DB_ERROR') {
-            console.log('⚠️  No risk tables found. Returning mock data.');
-            risks = [];
-          } else {
-            // Unknown error on risk_flags, still return mock data
-            console.log('⚠️  Unknown DB error. Returning mock data to prevent crash.');
-            risks = [];
-          }
-        }
-      } else {
-        // Unknown error on risks table, return mock data
-        console.log('⚠️  Unknown DB error on risks table. Returning mock data to prevent crash.');
-        risks = [];
-      }
-    }
-
-    // If no risks found in DB, return sample data
-    if (risks.length === 0) {
-      console.log('No risks in database. Returning mock sample data.');
-      risks = getMockRisks();
-      tableName = null;
-    }
-
-    console.log('Returning', risks.length, 'risks from', tableName || 'mock data');
-    console.log('====================================================\n');
-
-    res.status(200).json({
-      success: true,
-      count: risks.length,
-      risks,
-      source: tableName || 'mock_data',
-      message: risks.length === 3 && !tableName ? 'Mostrando riesgos de ejemplo. Complete el diagnóstico para análisis personalizado.' : undefined
-    });
-
-  } catch (error) {
-    // CRITICAL ERROR: Even outer try/catch failed
-    console.error('\n=== CRITICAL ERROR GET RISKS ===');
-    console.error('Error en Riesgos:', error.message);
-    console.error('Stack:', error.stack);
-    console.error('================================\n');
-
-    // NEVER return 500, always return data
-    res.status(200).json({
-      success: true,
-      count: 3,
-      risks: getMockRisks(),
-      source: 'fallback',
-      error: error.message
-    });
-  }
-};
+import { supabase } from '../lib/db.js';
 
 // Helper function for mock risks
 function getMockRisks() {
@@ -180,18 +42,107 @@ function getMockRisks() {
   ];
 }
 
+// @desc    Get all risks for company
+// @route   GET /api/risks
+// @access  Private
+export const getRisks = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // STEP 1: Find user's company
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+
+    if (companyError || !company) {
+      return res.status(200).json({
+        success: true,
+        count: 3,
+        risks: getMockRisks(),
+        source: 'mock_no_company',
+        message: 'No company found. Please register your company first.'
+      });
+    }
+
+    const companyId = company.id;
+
+    // STEP 2: Get risks for company
+    let risks = [];
+    let tableName = 'risks';
+
+    // Try risks table first
+    const { data: risksData, error: risksError } = await supabase
+      .from('risks')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('severity', { ascending: false });
+
+    if (!risksError) {
+      risks = risksData;
+    } else {
+      // Try risk_flags
+      if (risksError.code === '42P01') { // undefined_table
+        const { data: flagsData, error: flagsError } = await supabase
+          .from('risk_flags')
+          .select('*')
+          .eq('company_id', companyId)
+          .order('severity', { ascending: false });
+
+        if (!flagsError) {
+          risks = flagsData;
+          tableName = 'risk_flags';
+        } else {
+          risks = [];
+        }
+      } else {
+        risks = [];
+      }
+    }
+
+    // If no risks found in DB, return sample data
+    if (!risks || risks.length === 0) {
+      risks = getMockRisks();
+      tableName = null;
+    }
+
+    res.status(200).json({
+      success: true,
+      count: risks.length,
+      risks,
+      source: tableName || 'mock_data',
+      message: risks.length === 3 && !tableName ? 'Mostrando riesgos de ejemplo. Complete el diagnóstico para análisis personalizado.' : undefined
+    });
+
+  } catch (error) {
+    console.error('Get risks error:', error);
+    res.status(200).json({
+      success: true,
+      count: 3,
+      risks: getMockRisks(),
+      source: 'fallback',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Get risks by severity
 // @route   GET /api/risks/severity/:level
 // @access  Private
-exports.getBySeverity = async (req, res) => {
+export const getBySeverity = async (req, res) => {
   try {
     const companyId = req.user.company_id;
     const severity = req.params.level;
 
-    const [risks] = await pool.query(
-      'SELECT * FROM risks WHERE company_id = ? AND severity = ? ORDER BY created_at DESC',
-      [companyId, severity]
-    );
+    const { data: risks, error } = await supabase
+      .from('risks')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('severity', severity)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
 
     res.status(200).json({
       success: true,
@@ -210,25 +161,34 @@ exports.getBySeverity = async (req, res) => {
 // @desc    Get risk statistics
 // @route   GET /api/risks/stats
 // @access  Private
-exports.getRiskStats = async (req, res) => {
+export const getRiskStats = async (req, res) => {
   try {
     const companyId = req.user.company_id;
 
-    const [stats] = await pool.query(
-      'SELECT severity, COUNT(*) as count FROM risks WHERE company_id = ? GROUP BY severity',
-      [companyId]
-    );
+    // Supabase doesn't support GROUP BY directly in JS client easily without .rpc() or client-side aggregation
+    // We'll fetch all risks (lightweight) and aggregate in JS for now, assuming not millions of risks per company
+    const { data: risks, error } = await supabase
+      .from('risks')
+      .select('severity')
+      .eq('company_id', companyId);
 
-    const [total] = await pool.query(
-      'SELECT COUNT(*) as total FROM risks WHERE company_id = ?',
-      [companyId]
-    );
+    if (error) throw error;
+
+    const total = risks.length;
+    const stats = {};
+    risks.forEach(r => {
+      stats[r.severity] = (stats[r.severity] || 0) + 1;
+    });
+
+    // Convert to array format expected by frontend if needed, or just object
+    // Original SQL returned [{severity: 'high', count: 5}, ...]
+    const statsArray = Object.keys(stats).map(key => ({ severity: key, count: stats[key] }));
 
     res.status(200).json({
       success: true,
       stats: {
-        total: total[0].total,
-        by_severity: stats
+        total,
+        by_severity: statsArray
       }
     });
   } catch (error) {
@@ -243,7 +203,7 @@ exports.getRiskStats = async (req, res) => {
 // @desc    Create new risk
 // @route   POST /api/risks
 // @access  Private
-exports.createRisk = async (req, res) => {
+export const createRisk = async (req, res) => {
   try {
     const { title, description, category, severity, probability, impact } = req.body;
     const companyId = req.user.company_id;
@@ -255,20 +215,29 @@ exports.createRisk = async (req, res) => {
       });
     }
 
-    const [result] = await pool.query(
-      'INSERT INTO risks (company_id, title, description, category, severity, probability, impact, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [companyId, title, description, category, severity, probability, impact, 'open']
-    );
+    const { data: newRisk, error } = await supabase
+      .from('risks')
+      .insert([
+        {
+          company_id: companyId,
+          title,
+          description,
+          category,
+          severity,
+          probability,
+          impact,
+          status: 'open'
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
 
     res.status(201).json({
       success: true,
       message: 'Risk created successfully',
-      risk: {
-        id: result.insertId,
-        title,
-        severity,
-        status: 'open'
-      }
+      risk: newRisk
     });
   } catch (error) {
     console.error('Create risk error:', error);
@@ -282,15 +251,25 @@ exports.createRisk = async (req, res) => {
 // @desc    Update risk
 // @route   PUT /api/risks/:id
 // @access  Private
-exports.updateRisk = async (req, res) => {
+export const updateRisk = async (req, res) => {
   try {
     const riskId = req.params.id;
     const { title, description, category, severity, probability, impact, status } = req.body;
 
-    await pool.query(
-      'UPDATE risks SET title = ?, description = ?, category = ?, severity = ?, probability = ?, impact = ?, status = ? WHERE id = ?',
-      [title, description, category, severity, probability, impact, status, riskId]
-    );
+    const { error } = await supabase
+      .from('risks')
+      .update({
+        title,
+        description,
+        category,
+        severity,
+        probability,
+        impact,
+        status
+      })
+      .eq('id', riskId);
+
+    if (error) throw error;
 
     res.status(200).json({
       success: true,
@@ -308,11 +287,16 @@ exports.updateRisk = async (req, res) => {
 // @desc    Delete risk
 // @route   DELETE /api/risks/:id
 // @access  Private
-exports.deleteRisk = async (req, res) => {
+export const deleteRisk = async (req, res) => {
   try {
     const riskId = req.params.id;
 
-    await pool.query('DELETE FROM risks WHERE id = ?', [riskId]);
+    const { error } = await supabase
+      .from('risks')
+      .delete()
+      .eq('id', riskId);
+
+    if (error) throw error;
 
     res.status(200).json({
       success: true,

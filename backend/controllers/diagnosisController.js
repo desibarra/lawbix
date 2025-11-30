@@ -1,4 +1,4 @@
-const pool = require('../database/db');
+import { supabase } from '../lib/db.js';
 
 // Hardcoded legal questions array - no database table needed
 const LEGAL_QUESTIONS = [
@@ -112,7 +112,7 @@ const LEGAL_QUESTIONS = [
 // @desc    Get diagnosis questions
 // @route   GET /api/diagnosis/questions
 // @access  Private
-exports.getQuestions = async (req, res) => {
+export const getQuestions = async (req, res) => {
   try {
     res.status(200).json({
       success: true,
@@ -131,13 +131,10 @@ exports.getQuestions = async (req, res) => {
 // @desc    Submit diagnosis answers
 // @route   POST /api/diagnosis/submit
 // @access  Private
-exports.submitDiagnosis = async (req, res) => {
+export const submitDiagnosis = async (req, res) => {
   try {
     const { answers } = req.body;
     const userId = req.user.id;
-
-    console.log('\n=== SUBMIT DIAGNOSIS (Flow: User -> Company -> Save) ===');
-    console.log('User ID:', userId);
 
     if (!answers || !Array.isArray(answers)) {
       return res.status(400).json({
@@ -147,23 +144,17 @@ exports.submitDiagnosis = async (req, res) => {
     }
 
     // STEP 1: Find user's company
-    let companyId = null;
-    try {
-      const [companies] = await pool.query(
-        'SELECT id FROM companies WHERE user_id = ? LIMIT 1',
-        [userId]
-      );
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
 
-      if (companies.length > 0) {
-        companyId = companies[0].id;
-        console.log('✅ Company found with ID:', companyId);
-      } else {
-        console.log('⚠️  User has no company. Will save with company_id = NULL');
-      }
-    } catch (companyError) {
-      console.error('⚠️  Error finding company:', companyError.message);
-      console.log('Will save diagnosis with company_id = NULL');
+    if (companyError && companyError.code !== 'PGRST116') { // PGRST116 is "The result contains 0 rows"
+      console.error('Error finding company:', companyError);
     }
+
+    const companyId = company ? company.id : null;
 
     // Calculate compliance score based on answers
     let totalScore = 0;
@@ -186,7 +177,7 @@ exports.submitDiagnosis = async (req, res) => {
       }
     });
 
-    const complianceScore = Math.round((totalScore / maxScore) * 100);
+    const complianceScore = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
 
     // Determine risk level based on compliance score
     let riskLevel = 'bajo';
@@ -213,11 +204,7 @@ exports.submitDiagnosis = async (req, res) => {
     });
 
     // STEP 2: Save diagnosis to database
-    console.log('Saving diagnosis - Score:', complianceScore, '| Risk:', riskLevel);
-    console.log('Company ID to save:', companyId);
-
     if (!companyId) {
-      console.warn('⚠️  No company_id available. Cannot save diagnosis.');
       return res.status(200).json({
         success: true,
         message: 'Diagnosis calculated successfully (not saved - no company found)',
@@ -231,72 +218,37 @@ exports.submitDiagnosis = async (req, res) => {
       });
     }
 
-    try {
-      const [result] = await pool.query(
-        'INSERT INTO diagnosis_results (company_id, compliance_score, risk_level, answers_data, created_at) VALUES (?, ?, ?, ?, NOW())',
-        [companyId, complianceScore, riskLevel, JSON.stringify(answers)]
-      );
-
-      console.log('✅ Diagnosis saved with ID:', result.insertId);
-      console.log('=========================================================\n');
-
-      res.status(201).json({
-        success: true,
-        message: 'Diagnosis submitted successfully',
-        diagnosis: {
-          id: result.insertId,
+    const { data: result, error: insertError } = await supabase
+      .from('diagnosis_results')
+      .insert([
+        {
+          company_id: companyId,
           compliance_score: complianceScore,
           risk_level: riskLevel,
-          category_scores: categoryScores,
-          total_questions: answers.length,
-          created_at: new Date()
+          answers_data: JSON.stringify(answers) // Supabase can handle JSONB if column is JSONB, but stringify is safe
         }
-      });
-    } catch (dbError) {
-      console.error('\n=== DATABASE ERROR (Submit Diagnosis) ===');
-      console.error('Error en Diagnóstico:', dbError.message);
-      console.error('Error code:', dbError.code);
-      console.error('SQL Message:', dbError.sqlMessage);
-      console.error('==========================================\n');
+      ])
+      .select()
+      .single();
 
-      // If table doesn't exist or column mismatch, still return results without saving
-      if (dbError.code === 'ER_NO_SUCH_TABLE' || dbError.code === 'ER_BAD_DB_ERROR' || dbError.code === 'ER_BAD_FIELD_ERROR') {
-        console.warn('⚠️  Database issue. Returning results without saving to DB.');
-        return res.status(200).json({
-          success: true,
-          message: 'Diagnosis calculated successfully (results not persisted to database)',
-          diagnosis: {
-            compliance_score: complianceScore,
-            risk_level: riskLevel,
-            category_scores: categoryScores,
-            total_questions: answers.length,
-            created_at: new Date()
-          }
-        });
+    if (insertError) throw insertError;
+
+    res.status(201).json({
+      success: true,
+      message: 'Diagnosis submitted successfully',
+      diagnosis: {
+        id: result.id,
+        compliance_score: complianceScore,
+        risk_level: riskLevel,
+        category_scores: categoryScores,
+        total_questions: answers.length,
+        created_at: new Date()
       }
+    });
 
-      // For any other DB error, still return success with results
-      console.warn('⚠️  Unexpected DB error. Returning calculated results anyway.');
-      return res.status(200).json({
-        success: true,
-        message: 'Diagnosis calculated (could not save: ' + dbError.message + ')',
-        diagnosis: {
-          compliance_score: complianceScore,
-          risk_level: riskLevel,
-          category_scores: categoryScores,
-          total_questions: answers.length,
-          created_at: new Date()
-        }
-      });
-    }
   } catch (error) {
-    console.error('\n=== CRITICAL ERROR SUBMIT DIAGNOSIS ===');
-    console.error('Error en Diagnóstico:', error.message);
-    console.error('Stack:', error.stack);
-    console.error('========================================\n');
-
-    // Even in critical error, don't return 500
-    res.status(200).json({
+    console.error('Error submitting diagnosis:', error);
+    res.status(500).json({
       success: false,
       message: 'Error submitting diagnosis',
       error: error.message
@@ -307,144 +259,66 @@ exports.submitDiagnosis = async (req, res) => {
 // @desc    Get diagnosis results
 // @route   GET /api/diagnosis/results
 // @access  Private
-exports.getResults = async (req, res) => {
+export const getResults = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    console.log('\n=== GET DIAGNOSIS RESULTS (Flow: User -> Company -> Diagnosis) ===');
-    console.log('User ID:', userId);
-
     // STEP 1: Find user's company
-    let companyId = null;
-    try {
-      const [companies] = await pool.query(
-        'SELECT id FROM companies WHERE user_id = ? LIMIT 1',
-        [userId]
-      );
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
 
-      if (companies.length === 0) {
-        console.log('⚠️  User has no company registered');
-        console.log('===================================================================\n');
-        return res.status(200).json({
-          success: true,
-          diagnosis: null,
-          results: [],
-          message: 'No company found. Please register your company first.'
-        });
-      }
-
-      companyId = companies[0].id;
-      console.log('✅ Company found with ID:', companyId);
-    } catch (companyError) {
-      console.error('\n=== ERROR FINDING COMPANY ===');
-      console.error('Error en Diagnóstico:', companyError.message);
-      console.error('SQL Message:', companyError.sqlMessage);
-      console.error('==============================\n');
-
-      if (companyError.code === 'ER_NO_SUCH_TABLE' || companyError.code === 'ER_BAD_DB_ERROR') {
-        return res.status(200).json({
-          success: true,
-          diagnosis: null,
-          results: [],
-          message: 'Companies table not found. Database may need setup.'
-        });
-      }
-
+    if (companyError || !company) {
       return res.status(200).json({
-        success: false,
+        success: true,
         diagnosis: null,
         results: [],
-        message: 'Error finding company: ' + companyError.message
+        message: 'No company found. Please register your company first.'
       });
     }
 
     // STEP 2: Get diagnosis results for company
-    try {
-      const query = 'SELECT * FROM diagnosis_results WHERE company_id = ? ORDER BY created_at DESC LIMIT 1';
-      console.log('Query:', query);
-      console.log('Params:', [companyId]);
+    const { data: results, error: resultsError } = await supabase
+      .from('diagnosis_results')
+      .select('*')
+      .eq('company_id', company.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-      const [results] = await pool.query(query, [companyId]);
+    if (resultsError) throw resultsError;
 
-      if (results.length === 0) {
-        console.log('No diagnosis results found for company');
-        console.log('===================================================================\n');
-        return res.status(200).json({
-          success: true,
-          diagnosis: null,
-          results: [],
-          message: 'No diagnosis results found. Please complete a diagnosis first.'
-        });
-      }
-
-      const diagnosis = results[0];
-
-      // Parse answers_data if it's a string
-      if (typeof diagnosis.answers_data === 'string') {
-        try {
-          diagnosis.answers_data = JSON.parse(diagnosis.answers_data);
-        } catch (e) {
-          console.log('⚠️  Could not parse answers_data');
-          diagnosis.answers_data = [];
-        }
-      }
-
-      console.log('✅ Diagnosis found - ID:', diagnosis.id, '| Score:', diagnosis.compliance_score);
-      console.log('===================================================================\n');
-
-      res.status(200).json({
-        success: true,
-        diagnosis,
-        results: [diagnosis]
-      });
-    } catch (dbError) {
-      console.error('\n=== DATABASE ERROR (Diagnosis Results) ===');
-      console.error('Error en Diagnóstico:', dbError.message);
-      console.error('Error code:', dbError.code);
-      console.error('SQL Message:', dbError.sqlMessage);
-      console.error('SQL Query:', dbError.sql);
-      console.error('===========================================\n');
-
-      // If table doesn't exist, return empty result
-      if (dbError.code === 'ER_NO_SUCH_TABLE' || dbError.code === 'ER_BAD_DB_ERROR') {
-        console.log('⚠️  diagnosis_results table does not exist');
-        return res.status(200).json({
-          success: true,
-          diagnosis: null,
-          results: [],
-          message: 'Diagnosis table not found. Please complete a diagnosis first.'
-        });
-      }
-
-      // For any other DB error (including column mismatch)
-      if (dbError.code === 'ER_BAD_FIELD_ERROR') {
-        console.log('⚠️  Column mismatch in diagnosis_results table');
-        return res.status(200).json({
-          success: true,
-          diagnosis: null,
-          results: [],
-          message: 'Database schema mismatch. Please contact administrator.'
-        });
-      }
-
+    if (!results || results.length === 0) {
       return res.status(200).json({
-        success: false,
+        success: true,
         diagnosis: null,
         results: [],
-        message: 'Error fetching diagnosis: ' + dbError.message
+        message: 'No diagnosis results found. Please complete a diagnosis first.'
       });
     }
-  } catch (error) {
-    console.error('\n=== CRITICAL ERROR GET RESULTS ===');
-    console.error('Error en Diagnóstico:', error.message);
-    console.error('Stack:', error.stack);
-    console.error('===================================\n');
+
+    const diagnosis = results[0];
+
+    // Parse answers_data if it's a string
+    if (typeof diagnosis.answers_data === 'string') {
+      try {
+        diagnosis.answers_data = JSON.parse(diagnosis.answers_data);
+      } catch (e) {
+        diagnosis.answers_data = [];
+      }
+    }
 
     res.status(200).json({
+      success: true,
+      diagnosis,
+      results: [diagnosis]
+    });
+  } catch (error) {
+    console.error('Error fetching diagnosis results:', error);
+    res.status(500).json({
       success: false,
-      diagnosis: null,
-      results: [],
-      message: 'Critical error fetching diagnosis results',
+      message: 'Error fetching diagnosis results',
       error: error.message
     });
   }
@@ -453,17 +327,19 @@ exports.getResults = async (req, res) => {
 // @desc    Get specific diagnosis by ID
 // @route   GET /api/diagnosis/:id
 // @access  Private
-exports.getDiagnosisById = async (req, res) => {
+export const getDiagnosisById = async (req, res) => {
   try {
     const diagnosisId = req.params.id;
     const companyId = req.user.company_id;
 
-    const [results] = await pool.query(
-      'SELECT * FROM diagnosis_results WHERE id = ? AND company_id = ?',
-      [diagnosisId, companyId]
-    );
+    const { data: diagnosis, error } = await supabase
+      .from('diagnosis_results')
+      .select('*')
+      .eq('id', diagnosisId)
+      .eq('company_id', companyId)
+      .single();
 
-    if (results.length === 0) {
+    if (error || !diagnosis) {
       return res.status(404).json({
         success: false,
         message: 'Diagnosis not found'
@@ -472,7 +348,7 @@ exports.getDiagnosisById = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      diagnosis: results[0]
+      diagnosis
     });
   } catch (error) {
     console.error('Get diagnosis by ID error:', error);
