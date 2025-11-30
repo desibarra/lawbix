@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const serverless = require('serverless-http');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -33,18 +34,16 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   'https://lawbix.creceseonline.com',
   'https://www.lawbix.creceseonline.com',
-  process.env.FRONTEND_URL, // Vercel deployment
+  process.env.FRONTEND_URL,
 ].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
-
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(null, true); // Allow all origins for development
+      callback(null, true);
     }
   },
   credentials: true,
@@ -64,7 +63,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 
 // ===============================
-// 📁 Archivos estáticos (PDFs, docs)
+// 📁 Archivos estáticos
 // ===============================
 app.use('/documents', express.static('storage/documents'));
 
@@ -105,4 +104,5 @@ app.use((req, res) => {
 // ===============================
 app.use(errorHandler);
 
-module.exports = app;
+// === EXPORT PARA SERVERLESS (OBLIGATORIO PARA VERCEL)
+module.exports = serverless(app);
