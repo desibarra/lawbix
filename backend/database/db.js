@@ -1,25 +1,13 @@
-const { Pool } = require('pg');
+const mysql = require('mysql2/promise');
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  },
-  max: 1, // Optimización para Serverless (evita "too many clients")
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS, // Note: User specified DB_PASS, previous config used DB_PASSWORD. I should check .env or stick to user request. User request said DB_PASS.
+  database: process.env.DB_NAME,
+  port: 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
 });
 
-// Wrapper para compatibilidad con consultas estilo mysql2 si es necesario,
-// pero idealmente deberías usar sintaxis nativa de pg ($1, $2)
-module.exports = {
-  query: (text, params) => pool.query(text, params),
-  getConnection: async () => {
-    const client = await pool.connect();
-    // Monkey-patch release to match mysql2 interface if needed
-    const originalRelease = client.release;
-    client.release = () => originalRelease.apply(client);
-    return client;
-  },
-  pool
-};
+module.exports = pool;

@@ -2,10 +2,10 @@
   "name": "lawbix-backend",
   "version": "1.0.0",
   "description": "LAWBiX Backend API - Corporate Legal Engine",
-  "main": "server.js",
+  "main": "api/index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "echo 'Use vercel dev'",
+    "dev": "vercel dev",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -31,7 +31,7 @@
     "multer": "^1.4.5-lts.1",
     "openai": "^4.20.1",
     "pdfkit": "^0.13.0",
-    "pg": "^8.16.3",
+    "mysql2": "^3.6.5",
     "winston": "^3.11.0"
   },
   "devDependencies": {

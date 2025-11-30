@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const serverless = require('serverless-http');
+
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -104,5 +104,4 @@ app.use((req, res) => {
 // ===============================
 app.use(errorHandler);
 
-// === EXPORT PARA SERVERLESS (OBLIGATORIO PARA VERCEL)
-module.exports = serverless(app);
+module.exports = app;
