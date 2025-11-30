@@ -1,45 +1,25 @@
-// Serverless health check endpoint
-const { query } = require('../lib/db');
+import express from "express";
+import { supabase } from "../lib/db.js";
 
-module.exports = async (req, res) => {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+const router = express.Router();
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  console.log('🏥 Health check requested');
-  console.log('Environment variables:', {
-    DB_HOST: process.env.DB_HOST,
-    DB_USER: process.env.DB_USER,
-    DB_NAME: process.env.DB_NAME,
-    NODE_ENV: process.env.NODE_ENV
-  });
-
+router.get("/", async (req, res) => {
   try {
-    // Test database connection
-    console.log('🔍 Testing database connection...');
-    await query('SELECT 1');
-    console.log('✅ Database connection successful');
+    const { error } = await supabase.from("users").select("id").limit(1);
+    if (error) throw error;
 
     return res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      service: 'LAWBiX API',
-      database: 'connected',
-      environment: process.env.NODE_ENV || 'development'
+      ok: true,
+      service: "lawbix backend",
+      supabase: "connected",
+      timestamp: new Date().toISOString()
     });
-  } catch (error) {
-    console.error('❌ Health check failed:', error);
+  } catch (err) {
     return res.status(500).json({
-      status: 'error',
-      timestamp: new Date().toISOString(),
-      service: 'LAWBiX API',
-      database: 'disconnected',
-      error: error.message
+      ok: false,
+      error: err.message
     });
   }
-};
+});
+
+export default router;
