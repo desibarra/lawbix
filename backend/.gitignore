@@ -1,2 +1,9 @@
+node_modules
+.env
+.env.production
+.env.test
+npm-debug.log
+.DS_Store
 .vercel
-.env*.local
+dist
+coverage

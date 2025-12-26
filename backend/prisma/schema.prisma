@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String   @unique
+  password   String
+  role       String   @default("user") // "admin", "lawyer", "user"
+  company_id Int?
+  created_at DateTime @default(now())
+
+  // Relations
+  company      companies?
+  chat_history chat_history[]
+}
+
+model companies {
+  id                Int      @id @default(autoincrement())
+  user_id           Int      @unique
+  name              String
+  industry          String?
+  employee_count    String?
+  incorporation_date DateTime?
+  country           String?
+  corporate_vehicle String?
+  created_at        DateTime @default(now())
+
+  // Relations
+  user              users?             @relation(fields: [user_id], references: [id])
+  documents         documents[]
+  diagnosis_results diagnosis_results[]
+  roadmap_items     roadmap_items[]
+  risks             risks[]
+}
+
+model documents {
+  id         Int      @id @default(autoincrement())
+  company_id Int
+  name       String
+  type       String   // "PDF", etc.
+  url        String   @db.Text
+  created_at DateTime @default(now())
+
+  company    companies @relation(fields: [company_id], references: [id], onDelete: Cascade)
+}
+
+model diagnosis_results {
+  id               Int      @id @default(autoincrement())
+  company_id       Int
+  compliance_score Int
+  risk_level       String
+  answers_data     Json
+  created_at       DateTime @default(now())
+
+  company          companies @relation(fields: [company_id], references: [id], onDelete: Cascade)
+}
+
+model roadmap_items {
+  id           Int       @id @default(autoincrement())
+  company_id   Int
+  title        String
+  description  String?   @db.Text
+  priority     String    // "High", "Medium", "Low"
+  due_date     DateTime?
+  category     String?
+  status       String    @default("pending")
+  completed_at DateTime?
+  created_at   DateTime  @default(now())
+
+  company      companies @relation(fields: [company_id], references: [id], onDelete: Cascade)
+}
+
+model risks {
+  id          Int      @id @default(autoincrement())
+  company_id  Int
+  title       String
+  description String?  @db.Text
+  category    String?
+  severity    String   // "high", "medium", "low"
+  probability String?
+  impact      String?
+  status      String   @default("open")
+  mitigation  String?  @db.Text
+  created_at  DateTime @default(now())
+
+  company     companies @relation(fields: [company_id], references: [id], onDelete: Cascade)
+}
+
+model chat_history {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  message    String   @db.Text
+  sender     String   // "user", "bot"
+  created_at DateTime @default(now())
+
+  user       users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+// Extra tables mentioned or necessary
+model cap_table {
+  id Int @id @default(autoincrement())
+}
+
+model partners {
+  id Int @id @default(autoincrement())
+}
+
+model activity_log {
+  id Int @id @default(autoincrement())
+}

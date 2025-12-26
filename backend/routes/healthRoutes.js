@@ -1,23 +1,25 @@
 import express from "express";
-import { supabase } from "../lib/db.js";
+import prisma from "../lib/prisma.js";
 
 const router = express.Router();
 
 router.get("/", async (req, res) => {
   try {
-    const { error } = await supabase.from("users").select("id").limit(1);
-    if (error) throw error;
+    // Determine database health by running a simple query
+    await prisma.$queryRaw`SELECT 1`;
 
     return res.status(200).json({
       ok: true,
       service: "lawbix backend",
-      supabase: "connected",
+      database: "connected (mysql)",
       timestamp: new Date().toISOString()
     });
   } catch (err) {
+    console.error("Health check failed:", err);
     return res.status(500).json({
       ok: false,
-      error: err.message
+      error: "Database connection failed",
+      details: err.message
     });
   }
 });

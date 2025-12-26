@@ -1,0 +1,5 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^api/(.*)$ http://127.0.0.1:3001/api/$1 [P,L]
+    RewriteRule ^ index.html [L]
+</IfModule>
